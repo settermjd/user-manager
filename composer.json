@@ -1,0 +1,84 @@
+{
+    "name": "axleus/user-manager",
+    "description": "user management for mezzio applications",
+    "license": "BSD-3-Clause",
+    "keywords": [
+        "axleus",
+        "mezzio",
+        "user management"
+    ],
+    "authors": [
+        {
+            "name": "Joey Smith",
+            "email": "jsmith@webinertia.net",
+            "homepage": "https://github.com/axleus"
+        }
+    ],
+    "suggest": {
+    },
+    "require": {
+        "php": "~8.1.0 || ~8.2.0 || ~8.3.0",
+        "axleus/axleus-db": "1.0.x-dev",
+        "laminas/laminas-config": "^3.9",
+        "laminas/laminas-db": "^2.20.0",
+        "laminas/laminas-component-installer": "^3.2",
+        "laminas/laminas-stdlib": "^3.6",
+        "mezzio/mezzio": "^3.7",
+        "mezzio/mezzio-authentication-session": "^1.9",
+        "mezzio/mezzio-authorization-rbac": "^1.7",
+        "mezzio/mezzio-flash": "^1.8",
+        "mezzio/mezzio-laminasviewrenderer": "^2.15",
+        "phpmailer/phpmailer": "^6.9",
+        "psr/clock": "^1.0",
+        "ramsey/uuid": "^4.7",
+        "webinertia/webinertia-filter": "^0.0.5",
+        "webinertia/webinertia-validator": "dev-master"
+    },
+    "require-dev": {
+        "laminas/laminas-coding-standard": "^2.5",
+        "phpunit/phpunit": "^10.2",
+        "psalm/plugin-phpunit": "^0.18.4",
+        "roave/security-advisories": "dev-master",
+        "vimeo/psalm": "^5.14"
+    },
+    "extra": {
+        "laminas": {
+            "module": "UserManager",
+            "config-provider": "UserManager\\ConfigProvider"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "UserManager\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "UserManager\\Test\\": "test/"
+        }
+    },
+    "scripts": {
+        "check": [
+            "@cs-check",
+            "@static-analysis",
+            "@test"
+        ],
+        "cs-check": "phpcs",
+        "cs-fix": "phpcbf",
+        "static-analysis": "psalm --shepherd --stats",
+        "test": "phpunit --colors=always --testsuite \"unit test\"",
+        "test-coverage": "phpunit --colors=always --coverage-clover clover.xml",
+        "test-integration": "phpunit --colors=always --testsuite \"integration test\""
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": {
+            "php": "8.0.99"
+        },
+        "allow-plugins": {
+            "laminas/laminas-component-installer": true,
+            "composer/package-versions-deprecated": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}
