@@ -1,0 +1,38 @@
+<?php
+declare(strict_types=1);
+
+use Mezzio\Authentication\UserInterface;
+
+$userInterface = $this->request->getAttribute(UserInterface::class);
+?>
+<?=$this->header?>
+<main id="app-main" class="container">
+    <div class="row center-xs">
+        <div class="col-xs-6">
+            <div class="box">
+                <article>
+                    <nav>
+                        <ul>
+                            <li>Account Details</li>
+                        </ul>
+                        <ul>
+                            <li>
+                                <details class="dropdown">
+                                    <summary>
+                                        Account Actions
+                                    </summary>
+                                    <ul dir="rtl">
+                                        <li>
+                                            <a href="<?=$this->url('Change Password', ['id' => $userInterface->getDetail('id')])?>">Change Password</a>
+                                        </li>
+                                    </ul>
+                                </details>
+                            </li>
+                        </ul>
+                    </nav>
+                </article>
+            </div>
+        </div>
+    </div>
+</main>
+<?=$this->footer?>

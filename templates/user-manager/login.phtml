@@ -1,0 +1,24 @@
+<?php
+declare(strict_types=1);
+?>
+<?=$this->header?>
+<main id="app-main" class="container">
+    <div class="row center-xs">
+        <div class="col-xs-6">
+            <div class="box">
+                <article>
+                <?php
+                    if (isset($this->form)) {
+                        $this->form->setAttribute('action', $this->url('Login'));
+                        echo $this->form($this->form);
+                    }
+                ?>
+                    <span>Forgot your password?
+                    <a href="<?=$this->url('Reset Password');?>">Reset Password</a>
+                    </span>
+                </article>
+            </div>
+        </div>
+    </div>
+</main>
+<?=$this->footer?>
