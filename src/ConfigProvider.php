@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace UserManager;
 
 use Fig\Http\Message\RequestMethodInterface as Http;
+use Laminas\EventManager;
+use Laminas\EventManager\EventManager as EventManagerEventManager;
+use Laminas\EventManager\SharedEventManager;
 use Laminas\ServiceManager\Factory\InvokableFactory;
 use Mailer\ConfigProvider as MailConfigProvider;
 use Mailer\Adapter\AdapterInterface;
@@ -117,10 +120,14 @@ final class ConfigProvider
     {
         return [
             'aliases'    => [
-                AuthenticationInterface::class       => PhpSession::class,
-                AuthorizationInterface::class        => Authz\Rbac::class,
-                LaminasRbacAssertionInterface::class => Authz\UserAssertion::class,
-                UserRepositoryInterface::class       => User\UserRepository::class,
+                AuthenticationInterface::class                  => PhpSession::class,
+                AuthorizationInterface::class                   => Authz\Rbac::class,
+                LaminasRbacAssertionInterface::class            => Authz\UserAssertion::class,
+                UserRepositoryInterface::class                  => User\UserRepository::class,
+                EventManager\EventManagerInterface::class       => EventManager\EventManager::class,
+                'EventManager'                                  => EventManager\EventManager::class,
+                EventManager\SharedEventManagerInterface::class => EventManager\SharedEventManager::class,
+                'SharedEventManager'                            => EventManager\SharedEventManager::class,
             ],
             'delegators' => [
                 Application::class => [
@@ -128,19 +135,26 @@ final class ConfigProvider
                 ],
             ],
             'factories'  => [
-                AuthorizationMiddleware::class       => Middleware\AuthorizationMiddlewareFactory::class,
-                Authz\Rbac::class                    => Authz\RbacFactory::class,
-                Authz\UserAssertion::class           => InvokableFactory::class,
-                Handler\AccountHandler::class        => Handler\AccountHandlerFactory::class,
-                Handler\ChangePasswordHandler::class => Handler\ChangePasswordHandlerFactory::class,
-                Handler\LoginHandler::class          => Handler\LoginHandlerFactory::class,
-                Handler\LogoutHandler::class         => Handler\LogoutHandlerFactory::class,
-                Handler\RegistrationHandler::class   => Handler\RegistrationHandlerFactory::class,
-                Handler\ResetPasswordHandler::class  => Handler\ResetPasswordHandlerFactory::class,
-                Handler\VerifyAccountHandler::class  => Handler\VerifyAccountHandlerFactory::class,
-                Helper\VerificationHelper::class     => Helper\VerificationHelperFactory::class,
-                Middleware\IdentityMiddleware::class => Middleware\IdentityMiddlewareFactory::class,
-                User\UserRepository::class           => User\UserRepositoryFactory::class,
+                AuthorizationMiddleware::class           => Middleware\AuthorizationMiddlewareFactory::class,
+                Authz\Rbac::class                        => Authz\RbacFactory::class,
+                Authz\UserAssertion::class               => InvokableFactory::class,
+                EventManager\EventManager::class         => Container\EventManagerFactory::class,
+                EventManager\SharedEventManager::class   => static fn() => new SharedEventManager(),
+                Handler\AccountHandler::class            => Handler\AccountHandlerFactory::class,
+                Handler\ChangePasswordHandler::class     => Handler\ChangePasswordHandlerFactory::class,
+                Handler\LoginHandler::class              => Handler\LoginHandlerFactory::class,
+                Handler\LogoutHandler::class             => Handler\LogoutHandlerFactory::class,
+                Handler\RegistrationHandler::class       => Handler\RegistrationHandlerFactory::class,
+                Handler\ResetPasswordHandler::class      => Handler\ResetPasswordHandlerFactory::class,
+                Handler\VerifyAccountHandler::class      => Handler\VerifyAccountHandlerFactory::class,
+                Helper\VerificationHelper::class         => Helper\VerificationHelperFactory::class,
+                User\MessageListener::class              => User\MessageListenerFactory::class,
+                Middleware\EventManagerMiddleware::class => Middleware\EventManagerMiddlewareFactory::class,
+                Middleware\IdentityMiddleware::class     => Middleware\IdentityMiddlewareFactory::class,
+                User\UserRepository::class               => User\UserRepositoryFactory::class,
+            ],
+            'initializers' => [
+                Container\EventManagerInitializer::class,
             ],
         ];
     }
