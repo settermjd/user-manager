@@ -42,6 +42,7 @@ final class ConfigProvider
             'filters'                   => $this->getFilters(),
             'form_elements'             => $this->getFormElementConfig(),
             'input_filters'             => $this->getInputFilterConfig(),
+            'message_listeners'         => $this->getMessageListenerConfig(),
             'mezzio-authorization-rbac' => $this->getAuthorizationConfig(),
             'routes'                    => $this->getRouteConfig(),
             'templates'                 => $this->getTemplates(),
@@ -128,19 +129,20 @@ final class ConfigProvider
                 ],
             ],
             'factories'  => [
-                AuthorizationMiddleware::class       => Middleware\AuthorizationMiddlewareFactory::class,
-                Authz\Rbac::class                    => Authz\RbacFactory::class,
-                Authz\UserAssertion::class           => InvokableFactory::class,
-                Handler\AccountHandler::class        => Handler\AccountHandlerFactory::class,
-                Handler\ChangePasswordHandler::class => Handler\ChangePasswordHandlerFactory::class,
-                Handler\LoginHandler::class          => Handler\LoginHandlerFactory::class,
-                Handler\LogoutHandler::class         => Handler\LogoutHandlerFactory::class,
-                Handler\RegistrationHandler::class   => Handler\RegistrationHandlerFactory::class,
-                Handler\ResetPasswordHandler::class  => Handler\ResetPasswordHandlerFactory::class,
-                Handler\VerifyAccountHandler::class  => Handler\VerifyAccountHandlerFactory::class,
-                Helper\VerificationHelper::class     => Helper\VerificationHelperFactory::class,
-                Middleware\IdentityMiddleware::class => Middleware\IdentityMiddlewareFactory::class,
-                User\UserRepository::class           => User\UserRepositoryFactory::class,
+                AuthorizationMiddleware::class           => Middleware\AuthorizationMiddlewareFactory::class,
+                Authz\Rbac::class                        => Authz\RbacFactory::class,
+                Authz\UserAssertion::class               => InvokableFactory::class,
+                Handler\AccountHandler::class            => Handler\AccountHandlerFactory::class,
+                Handler\ChangePasswordHandler::class     => Handler\ChangePasswordHandlerFactory::class,
+                Handler\LoginHandler::class              => Handler\LoginHandlerFactory::class,
+                Handler\LogoutHandler::class             => Handler\LogoutHandlerFactory::class,
+                Handler\RegistrationHandler::class       => Handler\RegistrationHandlerFactory::class,
+                Handler\ResetPasswordHandler::class      => Handler\ResetPasswordHandlerFactory::class,
+                Handler\VerifyAccountHandler::class      => Handler\VerifyAccountHandlerFactory::class,
+                Helper\VerificationHelper::class         => Helper\VerificationHelperFactory::class,
+                Message\Listener\MessageListener::class  => Message\Listener\MessageListenerFactory::class,
+                Middleware\IdentityMiddleware::class     => Middleware\IdentityMiddlewareFactory::class,
+                User\UserRepository::class               => User\UserRepositoryFactory::class,
             ],
         ];
     }
@@ -192,6 +194,16 @@ final class ConfigProvider
                     static::MAIL_RESET_PASSWORD_MESSAGE_BODY => 'The reset link in this email is valid for %s. Please <a href="%s%s">Click Here!!</a> to reset your password.'
                 ],
             ],
+        ];
+    }
+
+    public function getMessageListenerConfig(): array
+    {
+        return [
+            [
+                'listener' => Message\Listener\MessageListener::class,
+                //'priority' => 0,
+            ]
         ];
     }
 
