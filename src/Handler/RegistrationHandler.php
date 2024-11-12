@@ -7,8 +7,7 @@ namespace UserManager\Handler;
 use App\HandlerTrait;
 use Laminas\Diactoros\Response\HtmlResponse;
 use Laminas\Diactoros\Response\RedirectResponse;
-use Laminas\EventManager\EventManagerAwareInterface;
-use Laminas\EventManager\EventManagerAwareTrait;
+use Laminas\EventManager\EventManagerInterface;
 use Laminas\View\Model\ModelInterface;
 use Mezzio\Authentication\UserRepositoryInterface;
 use Mezzio\Helper\UrlHelper;
@@ -16,14 +15,13 @@ use Mezzio\Template\TemplateRendererInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use UserManager\Message\VerificationEmail;
 use UserManager\Form\Register;
-use UserManager\Event\MessageEvent as EmailMessage;
 use UserManager\User\UserRepository;
 
-class RegistrationHandler implements RequestHandlerInterface, EventManagerAwareInterface
+class RegistrationHandler implements RequestHandlerInterface
 {
     use HandlerTrait;
-    use EventManagerAwareTrait;
 
     public function __construct(
         private TemplateRendererInterface $renderer,
@@ -51,20 +49,23 @@ class RegistrationHandler implements RequestHandlerInterface, EventManagerAwareI
         $body = $request->getParsedBody();
         $this->form->setData($body);
         if ($this->form->isValid()) {
-            $email = new EmailMessage(EmailMessage::EVENT_EMAIL_MESSAGE);
-            $uri = $request->getUri();
-            $host = $uri->getScheme() . '://' . $uri->getHost();
-            $host .= $uri->getPort() !== null ? ':' . $uri->getPort() : '';
+            $eventManager = $request->getAttribute(EventManagerInterface::class);
+            $email = new VerificationEmail(VerificationEmail::EVENT_VERIFY_ACCOUNT_EMAIL);
+            // flag this message to send a UI notification on success
+            $email->setNotify(true);
+            $uri   = $request->getUri();
+            $host  = $uri->getScheme() . '://' . $uri->getHost();
+            $host  .= $uri->getPort() !== null ? ':' . $uri->getPort() : '';
             // set host for email message link
             $email->setParam('host', $host);
             $userEntity = $this->form->getData();
             $userEntity->offsetUnset('conf_password');
             try {
                 $userEntity->hashPassword();
-                $result       = $this->userRepositoryInterface->save($userEntity, 'id');
+                $result     = $this->userRepositoryInterface->save($userEntity, 'id');
                 // set event target
                 $email->setTarget($result);
-                $sendResult = $this->getEventManager()->triggerEvent($email);
+                $messageResult = $eventManager->triggerEvent($email);
             } catch (\Throwable $th) {
                 throw $th;
             }

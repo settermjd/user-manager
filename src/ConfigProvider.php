@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace UserManager;
 
 use Fig\Http\Message\RequestMethodInterface as Http;
-use Laminas\EventManager;
-use Laminas\EventManager\EventManager as EventManagerEventManager;
-use Laminas\EventManager\SharedEventManager;
 use Laminas\ServiceManager\Factory\InvokableFactory;
 use Mailer\ConfigProvider as MailConfigProvider;
 use Mailer\Adapter\AdapterInterface;
@@ -45,6 +42,7 @@ final class ConfigProvider
             'filters'                   => $this->getFilters(),
             'form_elements'             => $this->getFormElementConfig(),
             'input_filters'             => $this->getInputFilterConfig(),
+            'message_listeners'         => $this->getMessageListenerConfig(),
             'mezzio-authorization-rbac' => $this->getAuthorizationConfig(),
             'routes'                    => $this->getRouteConfig(),
             'templates'                 => $this->getTemplates(),
@@ -120,14 +118,10 @@ final class ConfigProvider
     {
         return [
             'aliases'    => [
-                AuthenticationInterface::class                  => PhpSession::class,
-                AuthorizationInterface::class                   => Authz\Rbac::class,
-                LaminasRbacAssertionInterface::class            => Authz\UserAssertion::class,
-                UserRepositoryInterface::class                  => User\UserRepository::class,
-                EventManager\EventManagerInterface::class       => EventManager\EventManager::class,
-                'EventManager'                                  => EventManager\EventManager::class,
-                EventManager\SharedEventManagerInterface::class => EventManager\SharedEventManager::class,
-                'SharedEventManager'                            => EventManager\SharedEventManager::class,
+                AuthenticationInterface::class       => PhpSession::class,
+                AuthorizationInterface::class        => Authz\Rbac::class,
+                LaminasRbacAssertionInterface::class => Authz\UserAssertion::class,
+                UserRepositoryInterface::class       => User\UserRepository::class,
             ],
             'delegators' => [
                 Application::class => [
@@ -138,8 +132,6 @@ final class ConfigProvider
                 AuthorizationMiddleware::class           => Middleware\AuthorizationMiddlewareFactory::class,
                 Authz\Rbac::class                        => Authz\RbacFactory::class,
                 Authz\UserAssertion::class               => InvokableFactory::class,
-                EventManager\EventManager::class         => Container\EventManagerFactory::class,
-                EventManager\SharedEventManager::class   => static fn() => new SharedEventManager(),
                 Handler\AccountHandler::class            => Handler\AccountHandlerFactory::class,
                 Handler\ChangePasswordHandler::class     => Handler\ChangePasswordHandlerFactory::class,
                 Handler\LoginHandler::class              => Handler\LoginHandlerFactory::class,
@@ -148,13 +140,9 @@ final class ConfigProvider
                 Handler\ResetPasswordHandler::class      => Handler\ResetPasswordHandlerFactory::class,
                 Handler\VerifyAccountHandler::class      => Handler\VerifyAccountHandlerFactory::class,
                 Helper\VerificationHelper::class         => Helper\VerificationHelperFactory::class,
-                User\MessageListener::class              => User\MessageListenerFactory::class,
-                Middleware\EventManagerMiddleware::class => Middleware\EventManagerMiddlewareFactory::class,
+                Message\Listener\MessageListener::class  => Message\Listener\MessageListenerFactory::class,
                 Middleware\IdentityMiddleware::class     => Middleware\IdentityMiddlewareFactory::class,
                 User\UserRepository::class               => User\UserRepositoryFactory::class,
-            ],
-            'initializers' => [
-                Container\EventManagerInitializer::class,
             ],
         ];
     }
@@ -206,6 +194,16 @@ final class ConfigProvider
                     static::MAIL_RESET_PASSWORD_MESSAGE_BODY => 'The reset link in this email is valid for %s. Please <a href="%s%s">Click Here!!</a> to reset your password.'
                 ],
             ],
+        ];
+    }
+
+    public function getMessageListenerConfig(): array
+    {
+        return [
+            [
+                'listener' => Message\Listener\MessageListener::class,
+                //'priority' => 0,
+            ]
         ];
     }
 
