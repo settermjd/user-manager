@@ -8,12 +8,9 @@ use App\HandlerTrait;
 use Fig\Http\Message\RequestMethodInterface as Http;
 use Laminas\Diactoros\Response\HtmlResponse;
 use Laminas\Diactoros\Response\RedirectResponse;
+use Laminas\EventManager\EventManagerInterface;
 use Laminas\View\Model\ModelInterface;
-use Mailer\Adapter\AdapterInterface;
-use Mailer\Adapter\PhpMailer;
-use Mailer\ConfigProvider as MailerConfigProvider;
-use Mailer\Mailer;
-use Mailer\MailerInterface;
+use Message\SystemMessage;
 use Mezzio\Authentication\UserRepositoryInterface;
 use Mezzio\Helper\UrlHelper;
 use Mezzio\Template\TemplateRendererInterface;
@@ -23,6 +20,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use UserManager\ConfigProvider;
 use UserManager\Form\ResendVerification;
 use UserManager\Helper\VerificationHelper;
+use UserManager\Message\VerificationEmail;
 use UserManager\User\UserRepository;
 use UserManager\UserRepository\UserEntity;
 
@@ -33,7 +31,6 @@ class VerifyAccountHandler implements RequestHandlerInterface
     public function __construct(
         private TemplateRendererInterface $renderer,
         private UserRepositoryInterface&UserRepository $userRepositoryInterface,
-        private MailerInterface&Mailer $mailer,
         private VerificationHelper $verifyHelper,
         private ResendVerification $form,
         private UrlHelper $urlHelper,
@@ -74,7 +71,10 @@ class VerifyAccountHandler implements RequestHandlerInterface
         } catch (\Throwable $th) {
             throw $th;
         }
-        // todo: Add System Message to workflow for notification
+        $eventManager  = $request->getAttribute(EventManagerInterface::class);
+        $systemMessage = new SystemMessage(SystemMessage::EVENT_SYSTEM_MESSAGE);
+        $systemMessage->setSystemMessage('Verification successful! You can now login.');
+        $eventManager->triggerEvent($systemMessage);
         return new RedirectResponse(
             $this->urlHelper->generate('Home')
         );
@@ -86,42 +86,19 @@ class VerifyAccountHandler implements RequestHandlerInterface
             $body = $request->getParsedBody();
             $this->form->setData($body);
             if ($this->form->isValid()) {
-                $userEntity = $this->form->getData();
-                $serverParams = $request->getServerParams();
-                $result = $this->userRepositoryInterface->save($userEntity, 'id');
-                $result = $this->userRepositoryInterface->findOneBy('id', $result->id);
-                /** @var Mailer */
-                $mailer = $request->getAttribute(MailerInterface::class);
-                /** @var PhpMailer */
-                $adapter = $mailer->getAdapter();
-                $mailConfig = $this->config[MailerConfigProvider::class][AdapterInterface::class] ?? null;
-                $adapter?->to(
-                    $result->email,
-                    $result->firstName . ' ' . $result->lastName
-                );
-                $adapter?->isHtml();
-                $adapter?->subject(
-                    sprintf(
-                        $mailConfig[ConfigProvider::MAIL_MESSAGE_TEMPLATES][ConfigProvider::MAIL_VERIFY_SUBJECT],
-                        $this->config['app_settings']['app_name']
-                    )
-                );
-                $adapter?->body(
-                    sprintf(
-                        $mailConfig[ConfigProvider::MAIL_MESSAGE_TEMPLATES][ConfigProvider::MAIL_VERIFY_MESSAGE_BODY],
-                        $this->config['app_settings']['account_verification_token_max_lifetime'],
-                        $serverParams['REQUEST_SCHEME'] . '://' . $serverParams['HTTP_HOST'],
-                        $this->urlHelper->generate(
-                            routeName: 'Verify Account',
-                            routeParams: [
-                                'id'    => $result->id,
-                                'token' => $result->verificationToken,
-                            ],
-                            options: ['reuse_query_params' => false]
-                        )
-                    )
-                );
-                $mailer?->send($adapter);
+                $userEntity   = $this->form->getData();
+                $result       = $this->userRepositoryInterface->save($userEntity, 'id');
+                $result       = $this->userRepositoryInterface->findOneBy('id', $result->id);
+                $eventManager = $request->getAttribute(EventManagerInterface::class);
+                $email        = new VerificationEmail((VerificationEmail::EVENT_VERIFY_ACCOUNT_EMAIL));
+                // set flag to send systemMessage notification
+                $email->setNotify(true);
+                $uri   = $request->getUri();
+                $host  = $uri->getScheme() . '://' . $uri->getHost();
+                $host  .= $uri->getPort() !== null ? ':' . $uri->getPort() : '';
+                $email->setParam('host', $host);
+                $email->setTarget($result);
+                $messengerResult = $eventManager->triggerEvent($email);
             }
         } catch (\Throwable $th) {
             throw $th;

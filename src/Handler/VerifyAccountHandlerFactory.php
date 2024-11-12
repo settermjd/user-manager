@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace UserManager\Handler;
 
 use Laminas\Form\FormElementManager;
-use Mailer\MailerInterface;
 use Mezzio\Authentication\UserRepositoryInterface;
 use Mezzio\Helper\UrlHelper;
 use Mezzio\Template\TemplateRendererInterface;
@@ -21,7 +20,6 @@ class VerifyAccountHandlerFactory
         return new VerifyAccountHandler(
             $container->get(TemplateRendererInterface::class),
             $container->get(UserRepositoryInterface::class),
-            $container->get(MailerInterface::class),
             $container->get(VerificationHelper::class),
             $manager->get(ResendVerification::class),
             $container->get(UrlHelper::class),

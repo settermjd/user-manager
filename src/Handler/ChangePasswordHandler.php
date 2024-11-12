@@ -10,8 +10,10 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Laminas\Diactoros\Response\HtmlResponse;
 use Laminas\Diactoros\Response\RedirectResponse;
+use Laminas\EventManager\EventManagerInterface;
 use Laminas\View\Model\ModelInterface;
 use Laminas\View\Model\ViewModel;
+use Message\SystemMessage;
 use Mezzio\Authentication\UserInterface;
 use Mezzio\Helper\UrlHelper;
 use Mezzio\Template\TemplateRendererInterface;
@@ -40,11 +42,13 @@ class ChangePasswordHandler implements RequestHandlerInterface
     public function handleGet(ServerRequestInterface $request): ResponseInterface
     {
         /** @var RouteResult */
-        $routeResult = $request->getAttribute(RouteResult::class);
+        $routeResult   = $request->getAttribute(RouteResult::class);
         /** @var array */
-        $params   = $routeResult->getMatchedParams();
-        $hasToken = isset($params['id']) && isset($params['token']);
-        $isValid  = false;
+        $params        = $routeResult->getMatchedParams();
+        $hasToken      = isset($params['id']) && isset($params['token']);
+        $isValid       = false;
+        $eventManager  = $request->getAttribute(EventManagerInterface::class);
+        $systemMessage = new SystemMessage(SystemMessage::EVENT_SYSTEM_MESSAGE);
         if ($hasToken) {
             $isValid = $this->helper->verifyToken(
                 $request,
@@ -53,16 +57,22 @@ class ChangePasswordHandler implements RequestHandlerInterface
             );
         }
         if ($hasToken && $isValid) {
+
             /** @var ChangePasswordFieldset */
             $fieldset = $this->form->get('acct-data');
             $fieldset->remove('current_password');
             $this->form->setData(['acct-data' => ['id' => $params['id'], 'isTokenReset' => 1]]);
         } elseif($hasToken && ! $isValid) {
-            // todo: Add System Message to workflow for notification
+
+            $systemMessage->setSystemMessage(
+                'Your reset link has expired, please use the form to request a new reset link.'
+            );
+            $eventManager->triggerEvent($systemMessage);
             return new RedirectResponse(
                 $this->urlHelper->generate('Reset Password')
             );
         } elseif(! $hasToken) {
+
             /** @var UserInterface&UserEntity */
             $userInterface = $request->getAttribute(UserInterface::class);
             $this->form->setData(['acct-data' => ['id' => $userInterface->getDetail('id'), 'isTokenReset' => 0]]);
